@@ -70,7 +70,7 @@ md_final.rename(columns = {'combined_info': 'text'}, inplace = True)
 md_final.to_pickle('movies.pkl')
 md = pd.read_pickle('movies.pkl')
 
-# Use lanceDB,a open-source vectorDB for vector-search built with persistent storage
+# Use lanceDB,an open-source vectorDB for vector-search built with persistent storage
 import lancedb
 uri = "data/sample-lancedb"
 db = lancedb.connect(uri)
@@ -111,8 +111,37 @@ tools =[tool]
 agent_executor = create_conversational_retrieval_agent(llm,tools,verbose=True)
 agent_result = agent_executor({"input": "suggest me some action movies"})
 
+# Add recommender behaviour using customized prompt
+#Explore the existing prompt:
+print(qa.combine_documents_chain.llm_chain.prompt.template)
 
+from langchain.prompts import PromptTemplate
+template ="""You are a movie recommender system that find movies that match their preferences.
+Use the following pieces of context to answer the question at the end.
+For each question, suggest three movies, with a short description of the plot and the reason why the user might like it.
+If you don't know the answer, just say that you don't know, don't try to make up an answer.
+{context}
+Question: {question}
+Your response: 
+"""
 
+PROMPT = PromptTemplate(
+    template=template,
+    input_variables=["context","question"]
+)
+
+chain_type_kwargs= {"prompt": PROMPT}
+qa=RetrievalQA.from_chain_type(
+    llm=OpenAI(),
+    chain_type="stuff",
+    retriever=docsearch.as_retriever(),
+    return_source_documents=True,
+    chain_type_kwargs=chain_type_kwargs
+)
+
+query = "I'm looking for a funny action movie, any suggestion?"
+result= qa({'query':query})
+print(result['result'])
 
 
 
