@@ -1,4 +1,4 @@
-from general_prompting_principles import chat_completion
+from prompting.general_prompting_principles import chat_completion
 
 system_message ="""
 You are an AI Marketing assistant. You help users to create taglines for new product names.

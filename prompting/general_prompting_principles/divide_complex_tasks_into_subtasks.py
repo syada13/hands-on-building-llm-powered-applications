@@ -1,4 +1,4 @@
-from general_prompting_principles.chat_completion import get_chat_completion
+from prompting.general_prompting_principles.chat_completion import get_chat_completion
 
 system_message ="""
 You are an AI assistant that summarizes articles.

@@ -1,4 +1,4 @@
-from general_prompting_principles import chat_completion
+from prompting.general_prompting_principles import chat_completion
 
 system_message ="""
 To solve a generic first-degree equation, follow these steps:
