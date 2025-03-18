@@ -4,7 +4,6 @@ from langchain.chains.retrieval_qa.base import RetrievalQA
 from langchain.llms import OpenAI
 
 def data_processing():
-    # DATA PROCESSING
     md = pd.read_csv("movies_metadata.csv")
     # Convert string representation of dictionaries to actual dictionaries
     md['genres'] = md['genres'].apply(ast.literal_eval)
@@ -102,7 +101,6 @@ def build_qa_recommendation_chat_bot_in_cold_start():
     # and Action, and a rating of 6.447283923466021.'
 
 def filter_qa_response_based_on_additional_attributes():
-    # Filtering QA response based on additional attributes. Filter 'Comedy' genre movies only
     md =data_processing()
     df_filtered = md[md['genres'].apply(lambda x: 'Comedy' in x)]
     qa_filtered = RetrievalQA.from_chain_type(llm=OpenAI(), chain_type="stuff",
