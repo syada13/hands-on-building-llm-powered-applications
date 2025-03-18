@@ -1,13 +1,8 @@
 import pandas as pd
 import ast
 
-from lancedb.embeddings import OpenAIEmbeddings
-from streamlit import connection
 
-from prompting.advance_prompting_techniques.ReAct import tools, agent_executor
-from prompting.general_prompting_principles.use_delimeters import query
-
-# 1. Data Preprocessing
+# DATA PROCESSING
 md = pd.read_csv("movies_metadata.csv")
 
 # Convert string representation of dictionaries to actual dictionaries
@@ -43,7 +38,7 @@ md_final = md[[['genres', 'title', 'overview', 'weighted_rate']]].reset_index(dr
 md_final['combined_info'] = md_final.apply(lambda row: f"Title: {row['title']}. Overview: {row['overview']} Genres: {', '.join(row['genres'])}. Rating: {row['weighted_rate']}", axis=1)
 
 
-#Embedding
+#EMBEDDING
 import tiktoken
 import os
 import openai
@@ -70,6 +65,7 @@ md_final.rename(columns = {'combined_info': 'text'}, inplace = True)
 md_final.to_pickle('movies.pkl')
 md = pd.read_pickle('movies.pkl')
 
+#VECTOR DB - LanceDB
 # Use lanceDB,an open-source vectorDB for vector-search built with persistent storage
 import lancedb
 uri = "data/sample-lancedb"
@@ -80,6 +76,7 @@ table = db.create_table("movies", md)
 from langchain.vectorstores import LanceDB
 from langchain.chains import RetrievalQA
 from langchain.llms import OpenAI
+from lancedb.embeddings import OpenAIEmbeddings
 
 embeddings = OpenAIEmbeddings()
 docsearch = LanceDB(connection = table, embedding = embeddings)
@@ -115,6 +112,7 @@ agent_result = agent_executor({"input": "suggest me some action movies"})
 #Explore the existing prompt:
 print(qa.combine_documents_chain.llm_chain.prompt.template)
 
+#PROMPT ENGINEERING
 from langchain.prompts import PromptTemplate
 template ="""You are a movie recommender system that find movies that match their preferences.
 Use the following pieces of context to answer the question at the end.
@@ -143,6 +141,87 @@ query = "I'm looking for a funny action movie, any suggestion?"
 result= qa({'query':query})
 print(result['result'])
 
+
+
+#Content based recommender
+import pandas as pd
+from langchain.chains.qa_with_sources.map_reduce_prompt import combine_prompt_template
+from langchain.chains.retrieval_qa.base import RetrievalQA
+
+def user_dataset():
+    data = {
+    "username":["Alice","Bob"],
+    "age": [25,32],
+    "gender": ["F","M"],
+    "movies": [
+        [("Transformers: The Last knight",7),("Pokemon: Spell of the Unknown",5)],
+        [("Bon Cop Bad Cop 2",8),("Goon: Last of the Enforces",9)]
+    ]}
+
+    # Convert the "movies" column into dictionaries
+    for i, row_movies in enumerate(data["movies"]):
+        movie_dict={}
+        for movie, rating in row_movies:
+            movie_dict[movie] = rating
+            data["movies"][i] = movie_dict
+
+    # Create a pandas DataFrame
+    df = pd.DataFrame(data)
+    print(df.head())
+    "\n"
+
+   #Define the parametrized prompt chunks:
+    template_prefix = """You are a movie recommender system that help users to find movies that match their preferences.
+    Use the following pieces of context to answer the question at the end.
+    If you don't know the answer, just say that you don't know, don't try to make up an answer.
+    {context}
+    """
+
+    user_info = """This is what we know about the user, and you can use this information to better tune your research:
+    Age: {age}
+    Gender: {gender}
+    """
+
+    template_suffix = """
+    Question: {question}
+    Your response:
+    """
+
+    age = df.loc[df['username']=='Alice'] ['age'][0]
+    gender = df.loc[df['username'] == 'Alice']['gender'][0]
+    movies = ''
+    # Iterate over the dictionary and output movie name and rating
+    for movie,rating in df["movies"][0].items():
+        output_string = f"Movie: {movie}, Rating: {rating}" + "\n"
+        movies = movies +output_string
+        print(output_string)
+
+    user_info = user_info.format(age=18, gender='female')
+    combined_template = template_prefix + '\n' + user_info + '\n' + template_suffix
+    print(combined_template)
+
+    from langchain.prompts import PromptTemplate
+    from langchain.llms import OpenAI
+    prompt = PromptTemplate(
+        template=combined_template,
+        input_variables=["context","questions"]
+    )
+    chain_type_kwargs = {"prompt":prompt}
+    question_answer = RetrievalQA.from_chain_type(
+        llm=OpenAI(),
+        chain_type="stuff",
+        retriever=docsearch.as_retriever(),
+        return_source_document=True,
+        chain_type_kwargs=chain_type_kwargs
+    )
+
+    query = "Can you suggest me some action movie based on my background?"
+    answer = question_answer({'query': query})
+    print(answer['result'])
+
+
+if __name__ == "__main__":
+    user_dataset()
 
 
 
