@@ -1,8 +1,7 @@
 import pandas as pd
 import ast
-import pandas as pd
 from langchain.chains.retrieval_qa.base import RetrievalQA
-
+from langchain.llms import OpenAI
 
 def data_processing():
     # DATA PROCESSING
@@ -87,14 +86,12 @@ def vector_db_setup():
 
 def doc_search_from_vector_db():
     from langchain.vectorstores import LanceDB
-    from langchain.chains import RetrievalQA
     from lancedb.embeddings import OpenAIEmbeddings
     embeddings_for_qa = OpenAIEmbeddings()
     return LanceDB(connection=vector_db_setup(), embedding=embeddings_for_qa)
 
 
 def build_qa_recommendation_chat_bot_in_cold_start():
-    from langchain.llms import OpenAI
     query = "I'm looking for an animated action movie. What could you suggest to me?"
     docs = doc_search_from_vector_db().similarity_search(query)
     qa = RetrievalQA.from_chain_type(llm=OpenAI(), chain_type="stuff", retriever=doc_search_from_vector_db().as_retriever(),
@@ -105,7 +102,6 @@ def build_qa_recommendation_chat_bot_in_cold_start():
     # and Action, and a rating of 6.447283923466021.'
 
 def filter_qa_response_based_on_additional_attributes():
-    from langchain.llms import OpenAI
     # Filtering QA response based on additional attributes. Filter 'Comedy' genre movies only
     md =data_processing()
     df_filtered = md[md['genres'].apply(lambda x: 'Comedy' in x)]
@@ -157,7 +153,6 @@ def add_agentic_capability_to_qa():
     print(result['result'])
 
 
-#Content based recommender
 def content_based_movie_recommender():
     data = {
     "username":["Alice","Bob"],
@@ -210,7 +205,6 @@ def content_based_movie_recommender():
     print(combined_template)
 
     from langchain.prompts import PromptTemplate
-    from langchain.llms import OpenAI
     prompt = PromptTemplate(
         template=combined_template,
         input_variables=["context","questions"]
