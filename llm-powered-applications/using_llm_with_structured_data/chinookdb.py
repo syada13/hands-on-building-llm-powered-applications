@@ -10,8 +10,6 @@ conn = sqlite3.connect(database)
 tables = pd.read_sql("""SELECT name, type
                         FROM sqlite_master
                          WHERE type IN ("table", "view");""",conn)
-print(tables)
-print('\n')
 
 
 def top_5_countries_with_highest_sales():
@@ -24,9 +22,6 @@ def top_5_countries_with_highest_sales():
     """
     sales = pd.read_sql(sql,conn)
     return sales
-
-print(top_5_countries_with_highest_sales())
-print('\n')
 
 #Extract the number of tracks grouped by genre and plot graph
 def get_tracks_num_by_genre():
@@ -44,7 +39,12 @@ def get_tracks_num_by_genre():
     plt.xticks(rotation=90)
     plt.show()
 
+print(tables)
+print('\n')
+print(top_5_countries_with_highest_sales())
+print('\n')
 print(get_tracks_num_by_genre())
+print('\n')
 
 
 
