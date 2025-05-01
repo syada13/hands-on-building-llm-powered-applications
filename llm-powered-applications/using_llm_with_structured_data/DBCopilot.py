@@ -1,35 +1,41 @@
 import os
 from dotenv import load_dotenv
+import streamlit as st
+from langchain.llms import OpenAI
+from langchain.chat_models import ChatOpenAI
+from langchain.tools import BaseTool, Tool, tool
+from langchain.callbacks.base import BaseCallbackHandler
+from langchain import PromptTemplate
+import pandas as pd
 from langchain.agents import create_sql_agent
 from langchain.agents.agent_toolkits import SQLDatabaseToolkit
 from langchain.sql_database import SQLDatabase
-from langchain.llms.openai import OpenAI
 from langchain.agents import AgentExecutor
 from langchain.agents.agent_types import AgentType
-from langchain.chat_models import ChatOpenAI
-from langchain_experimental.tools.python.tool import PythonREPLTool
-from langchain_experimental.python import PythonREPL
-from langchain.agents.agent_toolkits import FileManagementToolkit
+from langchain.callbacks import StreamlitCallbackHandler
 
-#Load enviornment variables and key
+st.set_page_config(page_title="DBCopilot", page_icon="📊")
+st.header('📊 Welcome to DBCopilot, your copilot for structured databases.')
+
 load_dotenv()
+
+#os.environ["HUGGINGFACEHUB_API_TOKEN"]
 openai_api_key = os.environ['OPENAI_API_KEY']
 
-llm = OpenAI()
-model=ChatOpenAI()
 db = SQLDatabase.from_uri('sqlite:///chinook.db')
-toolkit = SQLDatabaseToolkit(db=db,llm=llm)
-agent_executor = create_sql_agent(
-  llm=llm,
-  toolkit=toolkit,
-  verbose=True
-  agent_type=AgentType.ZERO_SHOT_REACT_DESCRIPTION
-)
 
-print(agent_executor.run('Describe the playlisttrack table'))
-print(agent_executor.run('what is the total number of tracks and the average length of tracks by genre?'))
+# Import Azure OpenAI
+#from langchain.llms import AzureOpenAI
+#from langchain.chat_models import AzureChatOpenAI
 
-# We want a clear explanation of the thought process as well as the printed query our agent made for us.  We want to customize default prompt.
+# Uncomment these lines if you want to use your AOAI instance.
+#llm = AzureOpenAI(deployment_name="text-davinci-003", model_name="text-davinci-003")
+#model = AzureChatOpenAI(deployment_name='gpt-35-turbo',openai_api_type="azure")
+
+llm = OpenAI()
+model = ChatOpenAI()
+
+toolkit = SQLDatabaseToolkit(db=db, llm=llm)
 
 prompt_prefix = """ 
 ##Instructions:
@@ -48,6 +54,7 @@ DO NOT make any DML statements (INSERT, UPDATE, DELETE, DROP etc.) to the databa
 If the question does not seem related to the database, just return "I don\'t know" as the answer.
 
 ##Tools:
+
 """
 
 prompt_format_instructions = """ 
@@ -88,14 +95,20 @@ agent_executor = create_sql_agent(
     top_k=10
 )
 
-result = agent_executor.run("What are the top 5 best-selling albums and their artists?")
-print(result)
+if "messages" not in st.session_state or st.sidebar.button("Clear message history"):
+    st.session_state["messages"] = [{"role": "assistant", "content": "How can I help you?"}]
 
+for msg in st.session_state.messages:
+    st.chat_message(msg["role"]).write(msg["content"])
 
-working_directory = os.getcwd()
-tools = FileManagementToolkit(
-  root_dir = str(working_directory),
-  selected_tools=["read_file","write_file",list_directory],).get_tools()
+user_query = st.chat_input(placeholder="Ask me anything!")
 
-tools.append(PythonREPLTool())
-tools.extend(SQLDatabaseToolkit(db=db, llm=llm).get_tools())
+if user_query:
+    st.session_state.messages.append({"role": "user", "content": user_query})
+    st.chat_message("user").write(user_query)
+
+    with st.chat_message("assistant"):
+        st_cb = StreamlitCallbackHandler(st.container())
+        response = agent_executor.run(user_query, callbacks = [st_cb])
+        st.session_state.messages.append({"role": "assistant", "content": response})
+        st.write(response)
