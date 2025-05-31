@@ -1,5 +1,7 @@
 import os
 from dotenv import load_dotenv
+from langchain.agents.agent_toolkits import AzureCognitiveServicesToolkit
+from IPython import display
 
 # Load Azure AI services environment variables
 load_dotenv()
@@ -9,26 +11,21 @@ azure_cogs_region = os.environ["AZURE_COGS_REGION"]
 openai_api_key = os.environ["OPENAI_API_KEY"]
 
 #Configure our toolkit
-from langchain.agents.agent_toolkits import AzureCognitiveServicesToolkit
 toolkit = AzureCognitiveServicesToolkit()
 
 #Task - Tell us all the men's Stock Keeping Units(SKUs) on the invoice.
-mens_skus = agent.run("what are all men's skus?"
-"https://www.whiteelysee.fr/design/wp-content/uploads/2022/01/custom-t-shirt-order-form-template-free.jpg")
-
+invoice_image_url = "https://www.whiteelysee.fr/design/wp-content/uploads/2022/01/custom-t-shirt-order-form-template-free.jpg"
+mens_skus = agent.run(f"what are all men's skus? {invoice_image_url}")
 print(mens_skus)
 
 # Task - Ask for multiple information (women’s SKUs, shipping address, and delivery dates) as follows.
 
 #Negative Scenario - The delivery date is not specified, as we want our agent not to hallucinate:
 
-agent.run("Give me the following information about the invoice:women's SKUs, shipping address and delivery date."
-  "https://www.whiteelysee.fr/design/wp-content/uploads/2022/01/custom-t-shirt-order-form-template-free.jpg")
+agent.run(f"Give me the following information about the invoice:women's SKUs, shipping address and delivery date. {invoice_image_url}")
 
 # Task - Leverage the text2speech tool to produce the audio of the response and read it aloud:
-from IPython import display
-womens_skus_audio = agent.run("extract women's SKUs in the following invoice, then read it aloud to me: https://www.whiteelysee.fr/design/wp-content/uploads/2022/01/custom-t-shirt-order-form-template-free.jpg")
-
+womens_skus_audio = agent.run(f"extract women's SKUs in the following invoice, then read it aloud to me:{invoice_image_url}")
 display.display(womens_skus_audio)
 
 #Task - Customize the default agent prompt.
@@ -58,8 +55,7 @@ agent = initialize_agent(tools, model,
   )
 
 # Run the agent
-agent.run("what are women's SKUs in the following invoice?:"
-    "https://www.whiteelysee.fr/design/wp-content/uploads/2022/01/custom-t-shirt-order-form-template-free.jpg")
+agent.run(f"what are women's SKUs in the following invoice?:{invoice_image_url}")
 
 
 
