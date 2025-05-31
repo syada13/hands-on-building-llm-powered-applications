@@ -40,9 +40,14 @@ agent.run("what happens if the person lets the slingshot go?:"
 
 agent.run("Tell me a story related to the following picture and read the story aloud to me: https://i.redd.it/diawvlriobq11.jpg")
 
-#The agent was able to invoke two tools to accomplish the request:
-# 1 : It first started with the 'image_analysis' tool to generate the image caption used to produce the story.
-#2: Then, it invoked the 'text2speech' tool to read it aloud to the user.
+'''
+Oservation: The agent was able to invoke two tools to accomplish the request:
+1 : It first started with the 'image_analysis' tool to generate the image caption used to produce the story.
+2: Then, it invoked the 'text2speech' tool to read it aloud to the user.
+
+'''
+
+
 
 
 
