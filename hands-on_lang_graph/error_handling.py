@@ -155,6 +155,19 @@ print(res)
 
 fake_llm.invoke("test")
 
+#Add fallback 
+from langchain_core.runnables import RunnableLambda
+chain_fallback = RunnableLambda(lambda _:print("running fallback"))
+chain = fake_llm | RunnableLambda(lambda _:print("running main chain"))
+chain_with_fallback = chain.with_fallbacks([chain_fallback])
+
+#Our fake model fails every second time,this will executed fallback 
+chain_with_fallback.invoke("test")
+chain_with_fallback.invoke("test")
+
+
+
+
 
 
 
