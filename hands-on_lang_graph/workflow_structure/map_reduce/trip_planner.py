@@ -75,6 +75,8 @@ try:
     file.write(image)
 except FileNotFoundError:
   print(f"{image_name} was not found") 
+except Exception as e:
+    print(f"An unexpected error occurred: {e}")
 
 
 #Invoke workflow/graph agent to book trip.
