@@ -68,8 +68,13 @@ app = graph.compile()
 
 #Create graph image
 image = app.get_graph().draw_mermaid_png()
-with open("map_reduce.png","wb") as file:
-    file.write(image)   
+image_name = "map_reduce.png"
+
+try:
+  with open(image_name,"wb") as file:
+    file.write(image)
+except FileNotFoundError:
+  print(f"{image_name} was not found") 
 
 
 #Invoke workflow/graph agent to book trip.
