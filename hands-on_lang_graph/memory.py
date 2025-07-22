@@ -66,3 +66,51 @@ print(f"History length: {len(sessions['1'].messages)}")
 
 When designing a real application, you should be cautious about managing access to somebodys sessions. For example, if you use a sequential session_id, users might easily access sessions that dont belong to them. Practically, it might be enough to use a uuid (a uniquely generated long identifier) instead of a sequential session_id, or, depending on your security requirements, add other permissions validations during runtime.
 """
+
+"""Checkpoint
+
+Checkpointing in LangGraph is used to record the state of an application at a particular point in time, allowing it to be restored later. This is achieved by retrieving the checkpoint_id from the last checkpoint in the list of checkpoints. The graph is then invoked with a HumanMessage and a config that includes the thread_id and checkpoint_id.
+"""
+
+from langgraph.graph import MessageGraph
+from langgraph.checkpoint.memory import MemorySaver
+from langchain_core.messages import AIMessage
+from langgraph.graph import START, END
+
+
+def test_node(state):
+   # ignore the last message since it's an input one
+   print(f"History length = {len(state[:-1])}")
+   return [AIMessage(content="Hello!")]
+
+builder = MessageGraph()
+builder.add_node("test_node", test_node)
+builder.add_edge(START, "test_node")
+builder.add_edge("test_node", END)
+
+memory = MemorySaver()
+graph = builder.compile(checkpointer=memory)
+
+#Invoke graph
+_ = graph.invoke([HumanMessage(content="test")], config={"configurable": {"thread_id": "thread-a"}})
+_ = graph.invoke([HumanMessage(content="test")], config={"configurable": {"thread_id": "thread-b"}})
+_ = graph.invoke([HumanMessage(content="test")], config={"configurable": {"thread_id": "thread-a"}})
+
+#Inspect checkpoints for a given thread:
+checkpoints = list(memory.list(config={"configurable": {"thread_id": "thread-a"}}))
+for check_point in checkpoints:
+  print(check_point.config["configurable"]["checkpoint_id"])
+
+#Restore from the initial checkpoint for thread-a. 
+checkpoint_id = checkpoints[-1].config["configurable"]["checkpoint_id"]
+_ = graph.invoke(
+    [HumanMessage(content="test")],
+    config={"configurable": {"thread_id": "thread-a", "checkpoint_id": checkpoint_id}})
+
+#Start from an intermediate checkpoint
+heckpoint_id = checkpoints[-3].config["configurable"]["checkpoint_id"]
+_ = graph.invoke(
+    [HumanMessage(content="test")],
+    config={"configurable": {"thread_id": "thread-a", "checkpoint_id": checkpoint_id}})
+
+
