@@ -72,7 +72,22 @@ recursive_text_chunks = recursive_text_splitter.split_text(document)
 print(recursive_text_chunks)
 
 """Semantic chunking
+
 Unlike previous approaches that rely on textual separators, semantic chunking analyzes the meaning of content to determine chunk boundaries.
+
+Here’s how the SemanticChunker works:
+
+1.Splits text into sentences
+2.Creates embeddings for groups of sentences (determined by buffer_size)
+3.Measures semantic similarity between adjacent groups
+4.Identifies natural breakpoints where topics or concepts change
+5.Creates chunks that preserve semantic coherence
+
+When to use :
+We use semantic chunking for complex technical documents where semantic cohesion is crucial for accurate retrieval and when you’re willing to spend additional compute/costs on embedding generation.
+
+Benefits include chunk creation based on actual meaning rather than superficial text features and keeping related concepts together even when they span traditional separator boundaries.
+
 """
 
 from langchain_experimental.text_splitter import SemanticChunker
