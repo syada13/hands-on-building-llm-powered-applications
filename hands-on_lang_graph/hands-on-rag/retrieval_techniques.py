@@ -49,4 +49,21 @@ retriever = PubMedRetriever()
 results = retriever.invoke("COVID research")
 
 
+#Hybrid retrieval: Combining semantic and keyword search
+from langchain.retrievers import EnsembleRetriever
+from langchain_community.retrievers import BM25Retriever
 
+# Setup semantic retriever
+vector_retriever = vector_db.as_retriever(search_kwargs={"k": 5})
+
+# Setup lexical retriever to improve precision
+bm25_retriever = BM25Retriever.from_documents(documents)
+bm25_retriever.k = 5
+
+# Combine retrievers using EnsembleRetriever
+hybrid_retriever = EnsembleRetriever(
+  retrievers=[vector_retriever,bm25_retriever],
+  weights=[.75,.25] # Weight semantic search higher than keyword search
+)
+results = hybrid_retriever.get_relevant_documents("climate change impacts")
+print(results)
