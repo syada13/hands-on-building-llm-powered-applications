@@ -77,6 +77,38 @@ embedded_query= embeddings.embedded_query(hypothetical_doc)
 result = vector_db.similarity_search_by_vector(embedded_query,k =3)
 print(results)
 
+"""Context processing: maximizing retrieved information value
+Once documents are retrieved, context processing techniques help distill and organize the information to maximize its value in the generation phase.
+
+Contextual compression
+Contextual compression extracts only the most relevant parts of retrieved documents, removing irrelevant content that might distract the generator.
+
+LLMChainExtractor, which will iterate over the initially returned documents and extract from each only the content that is relevant to the query.
+
+The Contextual Compression Retriever passes queries to the base retriever, takes the initial documents and passes them through the Document Compressor. The Document Compressor takes a list of documents and shortens it by reducing the contents of documents or dropping documents altogether.
+"""
+
+from langchain.retrievers.document_compressors import LLMChainExtractor
+from langchain.retrievers import ContextualCompressionRetriever
+
+llm = ChatOpenAI(temperature=0)
+compressor = LLMChainExtractor.from_llm(llm)
+
+# Create a basic retriever from the vector store
+base_retriever = vector_db.as_retriever(search_kwargs={"k": 3})
+
+compression_retriever = ContextualCompressionRetriever(
+    base_compressor=compressor,
+    base_retriever=base_retriever
+)
+
+compressed_docs = compression_retriever.invoke("How do transformers work?")
+print(compressed_docs)
+
+"""Output:
+ [Document(metadata={'source': 'Neural Network Review 2021', 'page': 42}, page_content="The transformer architecture was introduced in the paper 'Attention is All You Need' by Vaswani et al. in 2017."),
+ Document(metadata={'source': 'Large Language Models Survey', 'page': 89}, page_content='GPT models are autoregressive transformers that predict the next token based on previous tokens.')]
+"""
 
 
 

@@ -70,11 +70,7 @@ print(results)
 
 """Re-ranking: 
 
-It is a post-processing step that can follow any retrieval method, including hybrid retrieval:
-
-1. First, retrieve a larger set of candidate documents
-2. Apply a more sophisticated model to re-score documents
-3. Reorder based on these more precise relevance scores
+It is a post-processing step that can follow any retrieval method, including hybrid retrieval.
 
 Cohere rerank: This compressor uses a ranking-based approach to detect and remove unimportant and irrelevant tokens from the retrieved documents.
 """
