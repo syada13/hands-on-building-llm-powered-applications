@@ -67,3 +67,46 @@ hybrid_retriever = EnsembleRetriever(
 )
 results = hybrid_retriever.get_relevant_documents("climate change impacts")
 print(results)
+
+"""Re-ranking: 
+
+It is a post-processing step that can follow any retrieval method, including hybrid retrieval:
+
+1. First, retrieve a larger set of candidate documents
+2. Apply a more sophisticated model to re-score documents
+3. Reorder based on these more precise relevance scores
+
+Cohere rerank: This compressor uses a ranking-based approach to detect and remove unimportant and irrelevant tokens from the retrieved documents.
+"""
+
+#1. Compress document
+from langchain.retrievers.document_compressors import CohereRerank
+from langchain.retrievers import ContextualCompressionRetriever
+
+# Initialize the compressor
+compressor = CohereRerank(top_n=3)
+
+# Create a compression retriever
+compression_retriever = ContextualCompressionRetriever(
+  base_compressor=compressor,
+  base_retriever=base_retriever
+)
+
+# Original documents
+print("Original documents:")
+
+original_docs = base_retriever.get_relevant_documents("How do transformers work?")
+for i, doc in enumerate(original_docs):
+  print(f"Doc{i}:  {doc.page_content[:100]}----")
+
+#Compressed documents
+print("\nCompressed documents:")
+compressed_docs = compression_retriever.get_relevant_documents("How do transformers work?")
+for i, doc in enumerate(compressed_docs):
+    print(f"Doc {i}: {doc.page_content[:100]}...")
+
+""" Hybrid retrieval vs re-ranking: 
+Hybrid retrievalfocuses on how documents are retrieved, 
+re-ranking focuses on how they’re ordered after retrieval. 
+
+Use case : These approaches can, and often should, be used together in a pipeline. When evaluating re-rankers, use position-aware metrics like Recall@k, which measures how effectively the re-ranker surfaces all relevant documents in the top positions.
