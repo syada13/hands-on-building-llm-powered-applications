@@ -7,7 +7,8 @@ sys.path.insert(0, os.path.abspath('..'))
 # setting the environment variables, the keys
 set_environment()
 
-""" Query transformation/expansion: Improving retrieval through better queries
+""" 
+Query transformation/expansion: Improving retrieval through better queries
  
  Use case : Query transformation techniques are particularly useful when dealing with ambiguous queries, questions formulated by non-experts, or situations where terminology mismatches between queries and documents are common. 
  
@@ -36,7 +37,9 @@ expanded_queries= expansion_chain.invoke(original_query)
 print(expanded_queries)
 
 
-"""Hypothetical Document Embeddings (HyDE)
+"""
+Hypothetical Document Embeddings (HyDE)
+
 HyDE uses an LLM to generate a hypothetical answer document based on the query, and then uses that document’s embedding for retrieval. This technique is especially powerful for complex queries where the semantic gap between query and document language is significant:
 """
 
@@ -77,15 +80,15 @@ embedded_query= embeddings.embedded_query(hypothetical_doc)
 result = vector_db.similarity_search_by_vector(embedded_query,k =3)
 print(results)
 
-"""Context processing: maximizing retrieved information value.
-
-Once documents are retrieved, context processing techniques help distill and organize the information to maximize its value in the generation phase.
+"""
+Context processing: maximizing retrieved information value.
 
 Use cases : Context processing techniques are especially valuable when dealing with lengthy documents where only portions are relevant, or when providing comprehensive coverage of a topic requires diverse viewpoints. They help reduce noise in the generator’s input and ensure that the most valuable information is prioritized.
 
 
-Contextual compression:
-Contextual compression extracts only the most relevant parts of retrieved documents, removing irrelevant content that might distract the generator.
+Once documents are retrieved, context processing techniques help distill and organize the information to maximize its value in the generation phase.
+
+Contextual compression: Contextual compression extracts only the most relevant parts of retrieved documents, removing irrelevant content that might distract the generator.
 
 LLMChainExtractor, which will iterate over the initially returned documents and extract from each only the content that is relevant to the query.
 
@@ -123,6 +126,112 @@ mmr_result = vector_db.max_marginal_relevance_search(
   lambda_mult=0.5 # Diversity parameter (0 = max diversity, 1 = max relevance) 
 )
 print(mmr_result)
+
+
+"""
+Response enhancement: Improving generator output
+
+Source attribution:Source attribution explicitly connects generated information to the retrieved sources, helping users verify facts and understand where information comes from.
+
+Use cases : Educational, medical and legal advice applications where accuracy and transparency are important.
+
+Eaxample:
+1. Retrieving relevant documents for a query
+2. Formatting each document with a citation number
+3. Using a prompt that explicitly requests citations for each fact
+4. Generating a response that includes inline citations ([1], [2], etc.)
+5. Adding a references section that links each citation to its source
+"""
+
+from langchain_core.documents import Document
+
+# Documents 
+documents =[
+    Document(
+        page_content="The transformer architecture was introduced in the paper 'Attention is All You Need' by Vaswani et al. in 2017.",
+        metadata={"source": "Neural Network Review 2021", "page": 42}
+    ),
+    Document(
+        page_content="BERT uses bidirectional training of the Transformer, masked language modeling, and next sentence prediction tasks.",
+        metadata={"source": "Introduction to NLP", "page": 137}
+    ),
+    Document(
+        page_content="GPT models are autoregressive transformers that predict the next token based on previous tokens.",
+        metadata={"source": "Large Language Models Survey", "page": 89}
+    )
+]
+
+
+# Source attribution prompt template
+from langchain_core.prompts import ChatPromptTemplate
+
+# Create a vector store and retriever
+embeddings = OpenAIEmbeddings()
+vector_store = FAISS.from_documents(documents, embeddings)
+retriever = vector_store.as_retriever(search_kwargs={"k": 3})
+
+attribution_prompt = ChatPromptTemplate.from_template("""
+You are a precise AI assistant that provides well-sourced information.
+Answer the following question based ONLY on the provided sources. For each fact or claim in your answer,include a citation using [1], [2], etc. that refers to the source. Include a numbered reference list at the end.
+Question: {question}
+Sources:
+{sources}
+Your answer:
+""")
+
+# Create a function/method to format the sources with citation numbers
+def format_sources_with_citations(docs):
+    formatted_sources: []
+    for i, doc in enumerate(docs):
+        source_info = f"[{i}] {doc.metadata.get('source','Unknown source')}"
+        if doc.metadata.get('page'):
+            source_info += f",page {doc.metadata['page']}"
+        formatted_sources.append(f"{source_info}\n{doc.page_content}")
+    return "\n\n".join(formatted_sources)
+
+
+# Build the RAG chain with source attribution
+def generate_attributed_response(question):
+    retrieved_docs = retriever.invoke(question)
+    sources_formatted = format_sources_with_citations(retrieved_docs)
+    attribution_chain =(attribution_prompt
+        | ChatOpenAI(temperature=0)
+        | StrOutputParser())
+
+    response = attribution_chain.invoke({
+        "question": question,
+        "sources": sources_formatted
+    })
+    return response
+
+
+#Testing :
+question = "How do transformer models work and what are some examples?"
+answer = generate_attributed_response(question)
+print(answer)
+
+"""Output:
+
+Transformer models are a type of neural network architecture that relies on self-attention mechanisms to process input data. They were first introduced in the paper 'Attention is All You Need' by Vaswani et al. in 2017 [1]. One example of a transformer model is BERT, which utilizes bidirectional training of the Transformer, masked language modeling, and next sentence prediction tasks [2]. Another example is the GPT series of models, which are autoregressive transformers that predict the next token based on previous tokens [3].
+
+Reference List:
+[1] Neural Network Review 2021, page 42
+[2] Introduction to NLP, page 137
+[3] Large Language Models Survey, page 89
+"""
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
