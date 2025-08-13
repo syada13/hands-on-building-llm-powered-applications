@@ -77,10 +77,14 @@ embedded_query= embeddings.embedded_query(hypothetical_doc)
 result = vector_db.similarity_search_by_vector(embedded_query,k =3)
 print(results)
 
-"""Context processing: maximizing retrieved information value
+"""Context processing: maximizing retrieved information value.
+
 Once documents are retrieved, context processing techniques help distill and organize the information to maximize its value in the generation phase.
 
-Contextual compression
+Use cases : Context processing techniques are especially valuable when dealing with lengthy documents where only portions are relevant, or when providing comprehensive coverage of a topic requires diverse viewpoints. They help reduce noise in the generator’s input and ensure that the most valuable information is prioritized.
+
+
+Contextual compression:
 Contextual compression extracts only the most relevant parts of retrieved documents, removing irrelevant content that might distract the generator.
 
 LLMChainExtractor, which will iterate over the initially returned documents and extract from each only the content that is relevant to the query.
@@ -105,10 +109,21 @@ compression_retriever = ContextualCompressionRetriever(
 compressed_docs = compression_retriever.invoke("How do transformers work?")
 print(compressed_docs)
 
-"""Output:
- [Document(metadata={'source': 'Neural Network Review 2021', 'page': 42}, page_content="The transformer architecture was introduced in the paper 'Attention is All You Need' by Vaswani et al. in 2017."),
- Document(metadata={'source': 'Large Language Models Survey', 'page': 89}, page_content='GPT models are autoregressive transformers that predict the next token based on previous tokens.')]
+
+"""Maximum Marginal Relevance (MMR):
+The max_marginal_relevance_search method is used to find relevant but diverse documents, reducing redundancy. This is achieved by controlling diversity using a lambda multiplier, where 0 represents max diversity and 1 represents max relevance. 
+
+Use cases : The method is useful in applications like recommendation systems, similarity searches, and clustering, where understanding the relationship between data points based on their embeddings is essential.
 """
+
+mmr_result = vector_db.max_marginal_relevance_search(
+  query="what are transformers models?",
+  k=5, # Number of documents to return
+  fetch_k=20 # Number of documents to initially fetch
+  lambda_mult=0.5 # Diversity parameter (0 = max diversity, 1 = max relevance) 
+)
+print(mmr_result)
+
 
 
 
