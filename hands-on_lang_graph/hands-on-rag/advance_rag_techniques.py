@@ -221,6 +221,126 @@ Reference List:
 """
 
 
+"""Self-consistency Checking:
+
+Self-consistency checking verifies that generated responses accurately reflect the information in retrieved documents, providing a crucial layer of protection against hallucinations.
+
+Verify if a generated answer is fully supported by the retrieved documents.
+    Args:
+        retrieved_docs: List of documents used to generate the answer
+        generated_answer: The answer produced by the RAG system
+        llm: Language model to use for verification
+    Returns:
+        Dictionary containing verification results and any identified issues
+
+"""
+
+from typing import List, Dict
+
+def verify_response_accuracy(
+    retrieved_docs: List[Document],
+    generated_answer: str,
+    llm: ChatOpenAI = None
+) -> Dict:
+    if llm is None:
+        llm = ChatOpenAI(model="gpt-turbo-3.5",temperature= 0)
+
+    # Create context from retrieved document
+    context = "\n\n".join([doc.page_content for doc in retrieved_docs])
+
+    # Define fact-checking template
+    verification_template = """As a fact-checking assistant, verify whether the following answer is fully supported
+    by the provided context. Identify any statements that are not supported or contradict the context.
+    
+    Context:
+    {context}
+    
+    Answer to verify:
+    {answer}
+    
+    Perform a detailed analysis with the following structure:
+    1. List any factual claims in the answer
+    2. For each claim, indicate whether it is:
+       - Fully supported (provide the supporting text from context)
+       - Partially supported (explain what parts lack support)
+       - Contradicted (identify the contradiction)
+       - Not mentioned in context
+    3. Overall assessment: Is the answer fully grounded in the context?
+    
+    Return your analysis in JSON format with the following structure:
+    {{
+      "claims": [
+        {{
+          "claim": "The factual claim",
+          "status": "fully_supported|partially_supported|contradicted|not_mentioned",
+          "evidence": "Supporting or contradicting text from context",
+          "explanation": "Your explanation"
+        }}
+      ],
+      "fully_grounded": true|false,
+      "issues_identified": ["List any specific issues"]
+    }}
+    """
+
+    #Define the verification prompt that instructs the LLM to perform a detailed fact-checking analysis.
+    verification_prompt = ChatPromptTemplate.from_template(verification_template)
+
+    # Create verification chain using LCEL
+    verification_chain = (
+        verification_prompt 
+        | llm 
+        | StrOutputParser()
+    )
+
+    # Run verification
+    verification_chain.invoke({
+        "context": context,
+        "answer": generated_answer
+    })
+    return result
+
+
+#Testing
+retrieved_docs = [
+    Document(page_content="The transformer architecture was introduced in the paper 'Attention Is All You Need' by Vaswani et al. in 2017. It relies on self-attention mechanisms instead of recurrent or convolutional neural networks."),
+    Document(page_content="BERT is a transformer-based model developed by Google that uses masked language modeling and next sentence prediction as pre-training objectives.")
+]
+
+generated_answer = "The transformer architecture was introduced by OpenAI in 2018 and uses recurrent neural networks. BERT is a transformer model developed by Google."
+
+verification_result = verify_response_accuracy(retrieved_docs, generated_answer)
+print(verification_result)
+
+"""OUTPUT
+{
+    "claims": [
+        {
+            "claim": "The transformer architecture was introduced by OpenAI in 2018",
+            "status": "contradicted",
+            "evidence": "The transformer architecture was introduced in the paper 'Attention Is All You Need' by Vaswani et al. in 2017.",
+            "explanation": "The claim is contradicted by the fact that the transformer architecture was actually introduced in 2017 by Vaswani et al., not by OpenAI in 2018."
+        },
+        {
+            "claim": "The transformer architecture uses recurrent neural networks",
+            "status": "contradicted",
+            "evidence": "It relies on self-attention mechanisms instead of recurrent or convolutional neural networks.",
+            "explanation": "The claim is contradicted by the fact that the transformer architecture does not use recurrent neural networks, but rather self-attention mechanisms."
+        },
+        {
+            "claim": "BERT is a transformer model developed by Google",
+            "status": "fully_supported",
+            "evidence": "BERT is a transformer-based model developed by Google that uses masked language modeling and next sentence prediction as pre-training objectives.",
+            "explanation": "This claim is fully supported by the provided context."
+        }
+    ],
+    "fully_grounded": false,
+    "issues_identified": ["The answer contains incorrect information about the introduction of the transformer architecture and its use of recurrent neural networks."]
+}
+"""
+
+
+
+
 
 
 
