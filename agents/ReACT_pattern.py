@@ -1,7 +1,10 @@
 from langchain_google_vertex import ChatVertexAI
+from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
+
 # I am skipping environment variables load on purpose
 llm = ChatVertexAI(model="gemini-1.5")
 
+#Define tools. A tool has a name, description, and schema for input arguments
 search_tool = {
    "title": "google_search",
     "description": "Returns about fresh events and news from Google Search engine based on a query",
@@ -16,7 +19,6 @@ search_tool = {
 }
 
 
-from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 calculator_tool = {
   "title": "calculator",
   "description": "Compute mathematical expressions",
