@@ -1,5 +1,6 @@
 from langchain_google_vertexai import ChatVertexAI
 from langchain_core.prompts import PromptTemplate
+from langgraph.prebuilt import create_react_agent
 
 llm = ChatVertexAI(model="gemini-2.0-flash-001")
 
